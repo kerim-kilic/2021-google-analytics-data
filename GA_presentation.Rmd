@@ -16,68 +16,109 @@ knitr::opts_chunk$set(echo = FALSE)
 library(RGoogleAnalytics)
 library(tidyverse)
 library(scales)
+library(gridExtra)
 ```
+
+```{r, message=FALSE, warning=FALSE}
+get_data <- function(start.date,end.date,dimensions,metrics)
+{
+  query <- Init(start.date = start.date,
+                end.date = end.date,
+                dimensions = dimensions,
+                metrics = metrics,
+                max.results = 10000,
+                sort = paste("-",dimensions,sep=""),
+                table.id = "ga:<table.id>"
+                )
+  ga.query <- QueryBuilder(query)
+  return(GetReportData(ga.query, token))
+}
+```
+
 
 ```{r, message=FALSE, warning=FALSE}
 token <- Auth(client.id="<ga:client.id>",
               client.secret="<ga:client.secret>")
 ValidateToken(token)
-query1 <- Init(start.date = "2021-01-01",
-                   end.date = "2021-12-25",
-                   dimensions = "ga:month",
-                   metrics = "ga:sessions,ga:pageviews,ga:users,ga:newUsers,ga:avgSessionDuration,ga:sessionDuration",
-                   max.results = 10000,
-                   sort = "-ga:month",
-                   table.id = "ga:<table.id>")
 
-query2 <- Init(start.date = "2021-01-01",
-                   end.date = "2021-12-25",
-                   dimensions = "ga:month",
-                   metrics = "ga:pageviewsPerSession,ga:timeOnPage,ga:avgTimeOnPage,ga:sessionsPerUser",
-                   max.results = 10000,
-                   sort = "-ga:month",
-                   table.id = "ga:<table.id>")
+df1 <- get_data("2021-01-01",
+               "2021-12-25",
+               "ga:month",
+               "ga:sessions,ga:pageviews,ga:users,ga:avgSessionDuration,ga:pageviewsPerSession")
 
+df1$month <- as.Date(paste(df1$month,"-01-2021",sep=""),"%m-%d-%y")
+df1 <- df1%>%filter(sessions!=0)
 
-# Create the Query Builder object so that the query parameters are validated
-ga.query1 <- QueryBuilder(query1)
-ga.query2 <- QueryBuilder(query2)
-
-# Extract the data and store it in a data-frame
-df1 <- GetReportData(ga.query1, token)
-df2 <- GetReportData(ga.query2, token)
-
-df<- cbind(df1,df2)
-df[,8] <- NULL
-
-
-filtered <- df%>%filter(sessions != 0 & pageviews != 0 & users != 0 & newUsers != 0)
-
-filtered$month <- as.Date(paste(filtered$month,"-01-2021",sep=""),"%m-%d-%y")
 ```
 
-# 2021 Wrapped up
+# Geographic data
 
-```{r,message=FALSE, warning=FALSE}
-# Pageviews and users
-total_pageviews <- sum(filtered$pageviews)
-total_users <- sum(filtered$users)
-# Average session duration
-seconds <- round(mean(filtered$avgSessionDuration)%%60)
-time <- mean(filtered$avgSessionDuration)-mean(filtered$avgSessionDuration)%%60
-minutes <- time/60
+```{r,message=FALSE,warning=FALSE,out.height="90%"}
+df2 <- get_data("2021-01-01",
+               "2021-12-25",
+               "ga:year,ga:country",
+               "ga:sessions,ga:pageviews,ga:users,ga:avgSessionDuration"
+               )
+
+df3 <- df2[with(df2,order(-sessions)),]%>%slice(1:5)
+p1 <- ggplot(df3, aes(x = reorder(country, sessions), y=sessions)) + 
+  geom_bar(position="dodge",stat="identity", alpha=.9, width=.5,fill="#a40000") +
+  scale_y_continuous(limits = c(0,300), breaks=seq(0,300,50)) + 
+  labs(x = "Country",y="Sessions", title ="Top 5 countries") + 
+  coord_flip() +
+  theme(
+    axis.line.x = element_line(colour = "grey50"),
+    axis.line.y = element_line(colour = "grey50"),
+  ) +
+  theme_light()
+
+df5 <- get_data("2021-01-01",
+               "2021-12-25",
+               "ga:year,ga:city",
+               "ga:sessions,ga:pageviews,ga:users,ga:avgSessionDuration"
+               )
+df6 <- df5[with(df5,order(-sessions)),]%>%filter(city != "(not set)")%>%slice(1:5)
+
+p2 <- ggplot(df6, aes(x = reorder(city, sessions), y=sessions)) + 
+  geom_bar(position="dodge",stat="identity", alpha=.9, width=.5,fill="#a40000") +
+  scale_y_continuous(limits = c(0,125), breaks=seq(0,125,25)) + 
+  labs(x = "City",y="Sessions", title ="Top 5 cities") + 
+  coord_flip() +
+  theme(
+    axis.line.x = element_line(colour = "grey50"),
+    axis.line.y = element_line(colour = "grey50"),
+  ) +
+  theme_light()
+
+grid.arrange(p1,p2,ncol=2)
 ```
 
-- **Total page views**:`r total_pageviews` page views
+# Channels
 
-- **Total users**: `r total_users` users
+```{r,message=FALSE,warning=FALSE,out.height="90%"}
+df4 <- get_data("2021-01-01",
+               "2021-12-25",
+               "ga:year,ga:channelGrouping",
+               "ga:sessions,ga:pageviews,ga:users,ga:avgSessionDuration"
+               )
 
-- **Average session duration**: `r minutes` minutes and `r seconds` seconds.
+ggplot(df4, aes(x = reorder(channelGrouping, sessions), y=sessions)) + 
+  geom_bar(position="dodge",stat="identity", alpha=.9, width=.5,fill="#a40000") +
+  scale_y_continuous(limits = c(0,300), breaks=seq(0,300,50)) + 
+  labs(x = "Channel type",y="Sessions", title ="Sessions per channel type") + 
+  coord_flip() +
+  theme(
+    axis.line.x = element_line(colour = "grey50"),
+    axis.line.y = element_line(colour = "grey50"),
+  ) +
+  theme_light()
+```
+
 
 # Pageviews over time
 
 ```{r,out.height="90%"}
-ggplot(filtered, aes(x = month, y=pageviews)) +
+ggplot(df1, aes(x = month, y=pageviews)) +
   geom_line(size=.75,color="#a40000") + 
   labs(x = "Month",y="Pageviews",title="Page views over time in 2021") + 
   scale_y_continuous(limits = c(0,600), breaks=seq(0,600,100)) + 
@@ -90,19 +131,32 @@ ggplot(filtered, aes(x = month, y=pageviews)) +
   theme_light()
 ```
 
-# Sessions over time
+# 2021 Website statistics wrapped up
 
-```{r,out.height="90%"}
-ggplot(filtered, aes(x = month, y=sessions)) +
-  geom_line(size=.75,color="#a40000") + 
-  labs(x = "Month",y="Sessions",title="Sessions over time in 2021") + 
-  scale_y_continuous(limits = c(0,140), breaks=seq(0,140,20)) + 
-  scale_x_date(labels = date_format("%b"), date_minor_breaks = "month",date_breaks = "1 month") +
-  geom_point(size=2,color="#a40000") +
-  theme(
-    axis.line.x = element_line(colour = "grey50"),
-    axis.line.y = element_line(colour = "grey50"),
-  ) +
-  theme_light()
+```{r,message=FALSE, warning=FALSE}
+# Pageviews and users
+total_pageviews <- sum(df1$pageviews)
+total_users <- sum(df1$users)
+# Average session duration
+seconds <- round(mean(df1$avgSessionDuration)%%60)
+time <- mean(df1$avgSessionDuration)-mean(df1$avgSessionDuration)%%60
+minutes <- time/60
+# Total countries and cities
+total_countries <- nrow(df2)
+total_cities <- nrow(df5)-1
+# Average pages per session
+avg_pages_per_session <- round(mean(df1$pageviewsPerSession),2)
 ```
 
+- **`r total_pageviews`** total page views
+
+- **`r total_users`** total users
+  - From **`r total_countries`** countries and **`r total_cities`** different cities.
+
+- Average session duration of **`r minutes`** minutes and **`r seconds`** seconds.
+
+- Average number of pages per session of **`r avg_pages_per_session`**.
+
+- Created using **[R](https://www.r-project.org/)** and the **[Google Analytics API](https://developers.google.com/analytics)**.
+
+- **[Click here](https://github.com/kerim-kilic/google-analytics-data)** to download to code from my GitHub.
