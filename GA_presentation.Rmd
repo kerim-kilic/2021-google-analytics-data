@@ -13,6 +13,12 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+
+install.packages("RGoogleAnalytics")
+install.packages("tidyverse")
+install.packages("scales")
+install.packages("gridExtra")
+
 library(RGoogleAnalytics)
 library(tidyverse)
 library(scales)
@@ -40,15 +46,6 @@ get_data <- function(start.date,end.date,dimensions,metrics)
 token <- Auth(client.id="<ga:client.id>",
               client.secret="<ga:client.secret>")
 ValidateToken(token)
-
-df1 <- get_data("2021-01-01",
-               "2021-12-25",
-               "ga:month",
-               "ga:sessions,ga:pageviews,ga:users,ga:avgSessionDuration,ga:pageviewsPerSession")
-
-df1$month <- as.Date(paste(df1$month,"-01-2021",sep=""),"%m-%d-%y")
-df1 <- df1%>%filter(sessions!=0)
-
 ```
 
 # Geographic data
@@ -118,6 +115,14 @@ ggplot(df4, aes(x = reorder(channelGrouping, sessions), y=sessions)) +
 # Pageviews over time
 
 ```{r,out.height="90%"}
+df1 <- get_data("2021-01-01",
+               "2021-12-25",
+               "ga:month",
+               "ga:sessions,ga:pageviews,ga:users,ga:avgSessionDuration,ga:pageviewsPerSession")
+
+df1$month <- as.Date(paste(df1$month,"-01-2021",sep=""),"%m-%d-%y")
+df1 <- df1%>%filter(sessions!=0)
+
 ggplot(df1, aes(x = month, y=pageviews)) +
   geom_line(size=.75,color="#a40000") + 
   labs(x = "Month",y="Pageviews",title="Page views over time in 2021") + 
