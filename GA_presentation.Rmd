@@ -14,11 +14,6 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 
-install.packages("RGoogleAnalytics")
-install.packages("tidyverse")
-install.packages("scales")
-install.packages("gridExtra")
-
 library(RGoogleAnalytics)
 library(tidyverse)
 library(scales)
@@ -34,7 +29,7 @@ get_data <- function(start.date,end.date,dimensions,metrics)
                 metrics = metrics,
                 max.results = 10000,
                 sort = paste("-",dimensions,sep=""),
-                table.id = "ga:<table.id>"
+                table.id = "<ga:table.id>" # Replace <ga:table.id> with actual table.id
                 )
   ga.query <- QueryBuilder(query)
   return(GetReportData(ga.query, token))
@@ -43,8 +38,8 @@ get_data <- function(start.date,end.date,dimensions,metrics)
 
 
 ```{r, message=FALSE, warning=FALSE}
-token <- Auth(client.id="<ga:client.id>",
-              client.secret="<ga:client.secret>")
+token <- Auth(client.id="<ga:client.id>", # Replace <ga:client.id> with actual client.id
+              client.secret="<ga:client.secret>") # Replace <ga:client.secret> with actual client.secret
 ValidateToken(token)
 ```
 
@@ -114,7 +109,7 @@ ggplot(df4, aes(x = reorder(channelGrouping, sessions), y=sessions)) +
 
 # Pageviews over time
 
-```{r,out.height="90%"}
+```{r,out.height="90%",message=FALSE,warning=FALSE}
 df1 <- get_data("2021-01-01",
                "2021-12-25",
                "ga:month",
