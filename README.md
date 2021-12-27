@@ -3,7 +3,14 @@ R script and R Markdown presentation with a brief summary of Google Analytics da
 
 ## Requirements
 
-**GA_presentation.Rmd** is set to knit to PDF so make sure to install the required **LaTeX** packages. Make sure to have set up Google Analytics for you website and check if you have valid Google Analytics API key credentials.
+**GA_presentation.Rmd** is set to knit to PDF so make sure to install the required **LaTeX** packages. Make sure to have set up Google Analytics for you website and check if you have valid Google Analytics API key credentials. The following **R libraries** are used:
+
+```r
+library(RGoogleAnalytics)
+library(tidyverse)
+library(scales)
+library(gridExtra)
+```
 
 ## Guide
 
