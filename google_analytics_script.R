@@ -1,3 +1,10 @@
+##
+##  Author:     Kerim Kiliç
+##  Created:    January 2022
+## 
+##
+## 
+
 install.packages("RGoogleAnalytics")
 install.packages("tidyverse")
 install.packages("scales")
